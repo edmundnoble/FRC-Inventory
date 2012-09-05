@@ -30,6 +30,7 @@ import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.Spinner;
 import android.widget.SpinnerAdapter;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.support.v4.app.NavUtils;
 
@@ -54,7 +55,7 @@ public class MainActivity extends Activity {
 				break;
 			}
 			case R.id.button2: {
-				view.show();
+				view();
 				break;
 			}
 			case R.id.button3: {
@@ -107,6 +108,26 @@ public class MainActivity extends Activity {
 		loadPreferences();
 	}
 
+	protected void view() {
+		view = new Dialog(this);
+		View viewLayout = getLayoutInflater().inflate(R.layout.part_view, null);
+		view.setTitle("View Part");
+		view.setContentView(viewLayout);
+		Part viewPart = (Part) parts.get(selectedPartPosition);
+		final TextView nameField = (TextView) viewLayout.findViewById(R.id.nameViewView);
+		final TextView numberField = (TextView) viewLayout.findViewById(R.id.numberViewView);
+		final TextView manufacturerField = (TextView) viewLayout.findViewById(R.id.manufacturerViewView);
+		final TextView categoryField = (TextView) viewLayout.findViewById(R.id.categoryViewView);
+		final TextView quantityField = (TextView) viewLayout.findViewById(R.id.quantityViewView);
+		nameField.setText(viewPart.name);
+		numberField.setText(viewPart.number);
+		manufacturerField.setText(viewPart.manufacturer);
+		categoryField.setText(viewPart.category);
+		quantityField.setText(viewPart.quantity);
+		view.show();
+
+	}
+
 	private void loadPreferences() {
 		refreshParts();
 	}
@@ -117,16 +138,7 @@ public class MainActivity extends Activity {
 		makeCategoryDialog(category_layout);
 		View add_layout = inflater.inflate(R.layout.add_dialog, null);
 		makeAddDialog(add_layout);
-		View view_layout = inflater.inflate(R.layout.part_view, null);
-		makeViewLayout(view_layout);
-	}
-
-	private void makeViewLayout(View view_layout) {
-		view = new Dialog(this);
-		view.setTitle("View Part");
-		view.setContentView(view_layout);
-		// final EditText viewEditField = (EditText)
-		// view_layout.findViewById(R.id.viewEditText1);
+		
 	}
 
 	private ArrayList<CharSequence> getModifiableCategories() {
@@ -303,7 +315,6 @@ public class MainActivity extends Activity {
 	final String[] keys = new String[] { "Name", "Number" };
 
 	protected void refreshParts() {
-
 		List<Map<String, String>> data = new ArrayList<Map<String, String>>();
 		for (Part part : parts) {
 			Map<String, String> datum = new HashMap<String, String>(keys.length);
@@ -343,12 +354,12 @@ public class MainActivity extends Activity {
 
 		SimpleAdapter viewAdapter = new SimpleAdapter(getApplicationContext(),
 				data, android.R.layout.simple_list_item_2, keys, new int[] {
-						android.R.id.text1, android.R.id.text2,
-						android.R.id.text2, android.R.id.text2 });
+						android.R.id.text1, android.R.id.text2 });
 		return viewAdapter;
 	}
 
 	class Part {
+		public CharSequence quantity;
 		String name;
 		String number;
 		String manufacturer;

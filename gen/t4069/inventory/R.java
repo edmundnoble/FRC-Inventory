@@ -32,25 +32,28 @@ public final class R {
         public static final int cancelCategoryButton=0x7f080019;
         public static final int categoryListView=0x7f080015;
         public static final int categoryNameField=0x7f080017;
+        public static final int categoryViewView=0x7f08001d;
         public static final int deleteCategoryButton=0x7f080016;
         public static final int editText1=0x7f080009;
         public static final int editText2=0x7f08000c;
         public static final int editText3=0x7f08000f;
         public static final int listView1=0x7f080003;
-        public static final int menu_settings=0x7f08001e;
+        public static final int manufacturerViewView=0x7f08001c;
+        public static final int menu_settings=0x7f080021;
+        public static final int nameViewView=0x7f08001a;
+        public static final int numberViewView=0x7f08001b;
+        public static final int quantityViewView=0x7f080020;
         public static final int spinner1=0x7f080012;
         public static final int tableRow1=0x7f080007;
         public static final int tableRow2=0x7f08000a;
         public static final int tableRow3=0x7f08000d;
         public static final int tableRow4=0x7f080010;
+        public static final int tableRow5=0x7f08001e;
         public static final int textView1=0x7f080008;
         public static final int textView2=0x7f08000b;
         public static final int textView3=0x7f08000e;
         public static final int textView4=0x7f080011;
-        public static final int viewCategoryField=0x7f08001d;
-        public static final int viewMakerField=0x7f08001c;
-        public static final int viewNameField=0x7f08001a;
-        public static final int viewNumberField=0x7f08001b;
+        public static final int textView5=0x7f08001f;
     }
     public static final class layout {
         public static final int activity_main=0x7f030000;
