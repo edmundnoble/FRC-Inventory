@@ -85,7 +85,7 @@
             android:layout_height="wrap_content" />
 
     </TableRow>
-
+
     <Button
         android:id="@+id/addDialogButton1"
         style="?android:attr/buttonStyleSmall"

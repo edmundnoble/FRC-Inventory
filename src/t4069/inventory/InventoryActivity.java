@@ -1,25 +1,18 @@
 package t4069.inventory;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import android.os.Bundle;
-import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.util.Log;
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemSelectedListener;
@@ -29,21 +22,18 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.Spinner;
-import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.support.v4.app.NavUtils;
 
 public class InventoryActivity extends Activity {
 	protected static final String ADD_NEW_CATEGORY = "Add a new category";
 	private Button addButton, removeButton, filterButton, resetFilterButton,
-			signOutButton, viewButton;
+			signOutButton, viewButton, editButton;
 	private String filterName, filterNumber, filterManufacturer,
 			filterCategory;
 	private ListView partView;
 	private int selectedPartPosition = -1;
-	private Dialog filter, add, signOut, view, category;
-	private static final int ADD = 1, SIGNOUT = 2, EDIT = 3, FILTER = 4;
+	private Dialog filter, add, signOut, category;
 	private static final String TAG = "FRC Inventory";
 	private ArrayList<CharSequence> categories = new ArrayList<CharSequence>();
 	private ArrayList<Part> parts = new ArrayList<Part>();
@@ -74,6 +64,13 @@ public class InventoryActivity extends Activity {
 				resetFilter();
 				break;
 			}
+			case R.id.button7: {
+				if (selectedPartPosition == -1
+						|| parts.get(selectedPartPosition) == null)
+					return;
+				edit(parts.get(selectedPartPosition));
+				break;
+			}
 			}
 		}
 	};
@@ -98,6 +95,7 @@ public class InventoryActivity extends Activity {
 		signOutButton = (Button) findViewById(R.id.button3);
 		filterButton = (Button) findViewById(R.id.button5);
 		resetFilterButton = (Button) findViewById(R.id.button6);
+		editButton = (Button) findViewById(R.id.button7);
 		makeDialogs();
 		addButton.setOnClickListener(buttonListener);
 		removeButton.setOnClickListener(buttonListener);
@@ -105,27 +103,40 @@ public class InventoryActivity extends Activity {
 		signOutButton.setOnClickListener(buttonListener);
 		filterButton.setOnClickListener(buttonListener);
 		resetFilterButton.setOnClickListener(buttonListener);
+		editButton.setOnClickListener(buttonListener);
 		loadPreferences();
 	}
 
 	protected void view() {
-		view = new Dialog(this);
+		final Dialog view = new Dialog(this);
 		View viewLayout = getLayoutInflater().inflate(R.layout.part_view, null);
 		view.setTitle("View Part");
 		view.setContentView(viewLayout);
-		Part viewPart = (Part) parts.get(selectedPartPosition);
-		final TextView nameField = (TextView) viewLayout.findViewById(R.id.nameViewView);
-		final TextView numberField = (TextView) viewLayout.findViewById(R.id.numberViewView);
-		final TextView manufacturerField = (TextView) viewLayout.findViewById(R.id.manufacturerViewView);
-		final TextView categoryField = (TextView) viewLayout.findViewById(R.id.categoryViewView);
-		final TextView quantityField = (TextView) viewLayout.findViewById(R.id.quantityViewView);
+		final Part viewPart = (Part) parts.get(selectedPartPosition);
+		final TextView nameField = (TextView) viewLayout
+				.findViewById(R.id.nameViewView);
+		final TextView numberField = (TextView) viewLayout
+				.findViewById(R.id.numberViewView);
+		final TextView manufacturerField = (TextView) viewLayout
+				.findViewById(R.id.manufacturerViewView);
+		final TextView categoryField = (TextView) viewLayout
+				.findViewById(R.id.categoryViewView);
+		final TextView quantityField = (TextView) viewLayout
+				.findViewById(R.id.quantityViewView);
+		final Button editButton = (Button) viewLayout
+				.findViewById(R.id.buttonEditView);
 		nameField.setText(viewPart.name);
 		numberField.setText(viewPart.number);
 		manufacturerField.setText(viewPart.manufacturer);
 		categoryField.setText(viewPart.category);
 		quantityField.setText(viewPart.quantity);
+		editButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				edit(viewPart);
+				view.cancel();
+			}
+		});
 		view.show();
-
 	}
 
 	private void loadPreferences() {
@@ -138,7 +149,7 @@ public class InventoryActivity extends Activity {
 		makeCategoryDialog(category_layout);
 		View add_layout = inflater.inflate(R.layout.add_dialog, null);
 		makeAddDialog(add_layout);
-		
+
 	}
 
 	private ArrayList<CharSequence> getModifiableCategories() {
@@ -227,6 +238,7 @@ public class InventoryActivity extends Activity {
 				android.R.layout.simple_expandable_list_item_1, categories)));
 		final Button m_addButton = (Button) add_layout
 				.findViewById(R.id.addDialogButton1);
+		m_addButton.setText("Add");
 		final Button m_cancelButton = (Button) add_layout
 				.findViewById(R.id.addDialogButton2);
 		final EditText nameField = (EditText) add_layout
@@ -356,6 +368,54 @@ public class InventoryActivity extends Activity {
 				data, android.R.layout.simple_list_item_2, keys, new int[] {
 						android.R.id.text1, android.R.id.text2 });
 		return viewAdapter;
+	}
+
+	private void edit(final Part viewPart) {
+		final Dialog editDialog = new Dialog(this);
+		View layout = getLayoutInflater().inflate(R.layout.add_dialog, null);
+		editDialog.setContentView(layout);
+		editDialog.setTitle("Edit");
+		final Button m_saveButton = (Button) layout
+				.findViewById(R.id.addDialogButton1);
+		final Button m_cancelButton = (Button) layout
+				.findViewById(R.id.addDialogButton2);
+		m_saveButton.setText("Save");
+		final EditText nameField = (EditText) layout
+				.findViewById(R.id.editText1);
+		final EditText numberField = (EditText) layout
+				.findViewById(R.id.editText2);
+		final EditText manufacturerField = (EditText) layout
+				.findViewById(R.id.editText3);
+		nameField.setText(viewPart.name);
+		numberField.setText(viewPart.number);
+		manufacturerField.setText(viewPart.manufacturer);
+		final Spinner addCategories = (Spinner) layout
+				.findViewById(R.id.spinner1);
+		addCategories.setAdapter((new ArrayAdapter<CharSequence>(
+				getApplicationContext(),
+				android.R.layout.simple_expandable_list_item_1, categories)));
+		for (int i = 0; i < categories.size(); i++) {
+			CharSequence category = categories.get(i);
+			if (category.equals(viewPart.category)) {
+				addCategories.setSelection(i);
+			}
+		}
+		m_saveButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				parts.remove(viewPart);
+				parts.add(new Part(nameField.getText().toString(), numberField
+						.getText().toString(), manufacturerField.getText().toString(), (String) addCategories.getSelectedItem()));
+				int selectedPos = selectedPartPosition;
+				refreshParts();
+				selectedPartPosition = selectedPos;
+				editDialog.cancel();
+			}});
+		m_cancelButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				editDialog.cancel();
+			}
+		});
+		editDialog.show();
 	}
 
 	class Part {

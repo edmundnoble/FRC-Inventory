@@ -11,5 +11,7 @@
     <string name="filter_button">Filter</string>
     <string name="resetFilter">Reset Filter</string>
     <string name="editButton">Edit</string>
+    <string name="buttonEditView">Edit</string>
+    <string name="saveButton">Save</string>
 
 </resources>
