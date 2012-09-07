@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.View;
@@ -29,8 +30,9 @@ public class InventoryActivity extends Activity {
 	protected static final String ADD_NEW_CATEGORY = "Add a new category";
 	private Button addButton, removeButton, filterButton, resetFilterButton,
 			signOutButton, viewButton, editButton;
-	private String filterName, filterNumber, filterManufacturer,
-			filterCategory;
+	private String filterName = "", filterNumber = "", filterManufacturer = "",
+			filterCategory = "";
+	private int filterQuantity;
 	private ListView partView;
 	private int selectedPartPosition = -1;
 	private Dialog filter, add, signOut, category;
@@ -149,11 +151,60 @@ public class InventoryActivity extends Activity {
 		makeCategoryDialog(category_layout);
 		View add_layout = inflater.inflate(R.layout.add_dialog, null);
 		makeAddDialog(add_layout);
+		View filter_layout = inflater.inflate(R.layout.filter_dialog, null);
+		makeFilterDialog(filter_layout);
 
 	}
 
+	private void makeFilterDialog(View filter_layout) {
+		filter = new Dialog(this);
+		filter.setTitle("Inventory Filter");
+		filter.setContentView(filter_layout);
+		((Button) filter_layout.findViewById(R.id.closeButtonFilter))
+				.setOnClickListener(new OnClickListener() {
+					public void onClick(View v) {
+						filter.cancel();
+					}
+				});
+		final EditText filterNameField = (EditText) filter_layout
+				.findViewById(R.id.nameFieldFilter);
+		final EditText filterNumberField = (EditText) filter_layout
+				.findViewById(R.id.numberFieldFilter);
+		final EditText filterManufacturerField = (EditText) filter_layout
+				.findViewById(R.id.manufacturerFieldFilter);
+		final EditText filterQuantityField = (EditText) filter_layout
+				.findViewById(R.id.quantityFieldFilter);
+		final Spinner categorySpinnerFilter = (Spinner) filter_layout
+				.findViewById(R.id.categorySpinnerFilter);
+		categorySpinnerFilter.setAdapter((new ArrayAdapter<CharSequence>(
+				getApplicationContext(),
+				android.R.layout.simple_expandable_list_item_1,
+				getModifiableCategories())));
+		Button filterButton = (Button) filter_layout
+				.findViewById(R.id.saveButtonFilter);
+		filterButton.setOnClickListener(new OnClickListener() {
+
+			public void onClick(View v) {
+				filterName = filterNameField.getText().toString();
+				filterNumber = filterNumberField.getText().toString();
+				filterManufacturer = filterManufacturerField.getText()
+						.toString();
+				filterCategory = (String) (categorySpinnerFilter
+						.getSelectedItem() == null ? "" : categorySpinnerFilter
+						.getSelectedItem());
+				try {
+					if (filterCategory.length() != 0)
+						filterQuantity = Integer.parseInt(filterQuantityField.getText().toString());
+				} catch (Exception e) {	filterQuantity = -1;}
+				filter.cancel();
+				refreshParts();
+			}
+		});
+
+		categorySpinnerFilter.getSelectedItemPosition();
+	}
+
 	private ArrayList<CharSequence> getModifiableCategories() {
-		@SuppressWarnings("unchecked")
 		ArrayList<CharSequence> mCategories = (ArrayList<CharSequence>) categories
 				.clone();
 		mCategories.remove("None");
@@ -304,6 +355,8 @@ public class InventoryActivity extends Activity {
 					.show();
 			return;
 		}
+		Log.d(TAG, partView.getAdapter().getItem(selectedPartPosition)
+				.getClass().toString());
 		Part removePart = (Part) parts.get(selectedPartPosition);
 		parts.remove(removePart);
 		refreshParts();
@@ -311,11 +364,16 @@ public class InventoryActivity extends Activity {
 	}
 
 	protected void resetFilter() {
-
+		filterName = "";
+		filterCategory = "";
+		filterNumber = "";
+		filterManufacturer = "";
+		filterQuantity = -1;
+		refreshParts();
 	}
 
 	protected void filter() {
-		// filter.show();
+		filter.show();
 	}
 
 	@Override
@@ -334,10 +392,17 @@ public class InventoryActivity extends Activity {
 			datum.put(keys[1], part.number);
 			data.add(datum);
 		}
-		SimpleAdapter viewAdapter = new SimpleAdapter(getApplicationContext(),
-				data, android.R.layout.simple_list_item_2, keys, new int[] {
-						android.R.id.text1, android.R.id.text2 });
+		SimpleAdapter viewAdapter;
+		if (filterName.length() == 0 || filterCategory.length() == 0
+				|| filterNumber.length() == 0
+				|| filterManufacturer.length() == 0 || filterQuantity == -1) {
+			viewAdapter = filter(parts);
+		} else
+			viewAdapter = new SimpleAdapter(getApplicationContext(), data,
+					android.R.layout.simple_list_item_2, keys, new int[] {
+							android.R.id.text1, android.R.id.text2 });
 		partView.setAdapter(viewAdapter);
+		selectedPartPosition = -1;
 	}
 
 	@SuppressWarnings({ "unchecked", "unused" })
@@ -404,12 +469,14 @@ public class InventoryActivity extends Activity {
 			public void onClick(View v) {
 				parts.remove(viewPart);
 				parts.add(new Part(nameField.getText().toString(), numberField
-						.getText().toString(), manufacturerField.getText().toString(), (String) addCategories.getSelectedItem()));
+						.getText().toString(), manufacturerField.getText()
+						.toString(), (String) addCategories.getSelectedItem()));
 				int selectedPos = selectedPartPosition;
 				refreshParts();
 				selectedPartPosition = selectedPos;
 				editDialog.cancel();
-			}});
+			}
+		});
 		m_cancelButton.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				editDialog.cancel();
