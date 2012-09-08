@@ -37,7 +37,7 @@ public class InventoryActivity extends Activity {
 	private int selectedPartPosition = -1;
 	private Dialog filter, add, signOut, category;
 	private static final String TAG = "FRC Inventory";
-	private ArrayList<CharSequence> categories = new ArrayList<CharSequence>();
+	private ArrayList<CharSequence> categoryList = new ArrayList<CharSequence>();
 	private ArrayList<Part> parts = new ArrayList<Part>();
 	private OnClickListener buttonListener = new OnClickListener() {
 		public void onClick(View v) {
@@ -47,11 +47,12 @@ public class InventoryActivity extends Activity {
 				break;
 			}
 			case R.id.button2: {
+				if (selectedPartPosition == -1) return;
 				view();
 				break;
 			}
 			case R.id.button3: {
-				signOut.show();
+				signOut();
 				break;
 			}
 			case R.id.button4: {
@@ -59,7 +60,8 @@ public class InventoryActivity extends Activity {
 				break;
 			}
 			case R.id.button5: {
-				filter();
+				View filter_layout = getLayoutInflater().inflate(R.layout.filter_dialog, null);
+				filter(filter_layout);
 				break;
 			}
 			case R.id.button6: {
@@ -80,8 +82,8 @@ public class InventoryActivity extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		categories.add("None");
-		categories.add(ADD_NEW_CATEGORY);
+		categoryList.add("None");
+		categoryList.add(ADD_NEW_CATEGORY);
 		setContentView(R.layout.activity_main);
 		partView = (ListView) findViewById(R.id.listView1);
 		partView.setOnItemClickListener(new OnItemClickListener() {
@@ -107,6 +109,12 @@ public class InventoryActivity extends Activity {
 		resetFilterButton.setOnClickListener(buttonListener);
 		editButton.setOnClickListener(buttonListener);
 		loadPreferences();
+	}
+
+	protected void signOut() {
+		Dialog signOut = new Dialog(this);
+		signOut.setTitle("Sign Out");
+
 	}
 
 	protected void view() {
@@ -151,12 +159,12 @@ public class InventoryActivity extends Activity {
 		makeCategoryDialog(category_layout);
 		View add_layout = inflater.inflate(R.layout.add_dialog, null);
 		makeAddDialog(add_layout);
-		View filter_layout = inflater.inflate(R.layout.filter_dialog, null);
-		makeFilterDialog(filter_layout);
+		
+		
 
 	}
-
-	private void makeFilterDialog(View filter_layout) {
+private static final String DO_NOT_FILTER = "Not filtered";
+	private void filter(View filter_layout) {
 		filter = new Dialog(this);
 		filter.setTitle("Inventory Filter");
 		filter.setContentView(filter_layout);
@@ -176,10 +184,12 @@ public class InventoryActivity extends Activity {
 				.findViewById(R.id.quantityFieldFilter);
 		final Spinner categorySpinnerFilter = (Spinner) filter_layout
 				.findViewById(R.id.categorySpinnerFilter);
-		categorySpinnerFilter.setAdapter((new ArrayAdapter<CharSequence>(
-				getApplicationContext(),
-				android.R.layout.simple_expandable_list_item_1,
-				getModifiableCategories())));
+		ArrayList<CharSequence> cats = new ArrayList<CharSequence>();
+		cats.add(DO_NOT_FILTER);
+		cats.addAll(categoryList);
+		cats.remove(ADD_NEW_CATEGORY);
+		categorySpinnerFilter.setAdapter(new ArrayAdapter<CharSequence>(this,
+				android.R.layout.simple_expandable_list_item_1, cats));
 		Button filterButton = (Button) filter_layout
 				.findViewById(R.id.saveButtonFilter);
 		filterButton.setOnClickListener(new OnClickListener() {
@@ -190,22 +200,24 @@ public class InventoryActivity extends Activity {
 				filterManufacturer = filterManufacturerField.getText()
 						.toString();
 				filterCategory = (String) (categorySpinnerFilter
-						.getSelectedItem() == null ? "" : categorySpinnerFilter
+						.getSelectedItem().equals(DO_NOT_FILTER) ? "" : categorySpinnerFilter
 						.getSelectedItem());
 				try {
-					if (filterCategory.length() != 0)
-						filterQuantity = Integer.parseInt(filterQuantityField.getText().toString());
-				} catch (Exception e) {	filterQuantity = -1;}
+					if (filterQuantityField.length() != 0)
+						filterQuantity = Integer.parseInt(filterQuantityField
+								.getText().toString());
+				} catch (Exception e) {
+					filterQuantity = -1;
+				}
 				filter.cancel();
 				refreshParts();
 			}
 		});
-
-		categorySpinnerFilter.getSelectedItemPosition();
+		filter.show();
 	}
 
 	private ArrayList<CharSequence> getModifiableCategories() {
-		ArrayList<CharSequence> mCategories = (ArrayList<CharSequence>) categories
+		ArrayList<CharSequence> mCategories = (ArrayList<CharSequence>) categoryList
 				.clone();
 		mCategories.remove("None");
 		mCategories.remove(ADD_NEW_CATEGORY);
@@ -245,7 +257,7 @@ public class InventoryActivity extends Activity {
 		addButton.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				final String name = categoryNameField.getText().toString();
-				categories.add(name);
+				categoryList.add(name);
 				categoryListView.setAdapter(new ArrayAdapter<CharSequence>(
 						getApplicationContext(),
 						android.R.layout.simple_expandable_list_item_1,
@@ -264,9 +276,9 @@ public class InventoryActivity extends Activity {
 							"No category selected!", Toast.LENGTH_SHORT).show();
 					return;
 				}
-				for (int i = 0; i < categories.size(); i++) {
-					if (selectedCategory.equals(categories.get(i))) {
-						categories.remove(i);
+				for (int i = 0; i < categoryList.size(); i++) {
+					if (selectedCategory.equals(categoryList.get(i))) {
+						categoryList.remove(i);
 						break;
 					}
 				}
@@ -286,7 +298,7 @@ public class InventoryActivity extends Activity {
 				.findViewById(R.id.spinner1);
 		addCategories.setAdapter((new ArrayAdapter<CharSequence>(
 				getApplicationContext(),
-				android.R.layout.simple_expandable_list_item_1, categories)));
+				android.R.layout.simple_expandable_list_item_1, categoryList)));
 		final Button m_addButton = (Button) add_layout
 				.findViewById(R.id.addDialogButton1);
 		m_addButton.setText("Add");
@@ -458,9 +470,9 @@ public class InventoryActivity extends Activity {
 				.findViewById(R.id.spinner1);
 		addCategories.setAdapter((new ArrayAdapter<CharSequence>(
 				getApplicationContext(),
-				android.R.layout.simple_expandable_list_item_1, categories)));
-		for (int i = 0; i < categories.size(); i++) {
-			CharSequence category = categories.get(i);
+				android.R.layout.simple_expandable_list_item_1, categoryList)));
+		for (int i = 0; i < categoryList.size(); i++) {
+			CharSequence category = categoryList.get(i);
 			if (category.equals(viewPart.category)) {
 				addCategories.setSelection(i);
 			}
@@ -486,7 +498,7 @@ public class InventoryActivity extends Activity {
 	}
 
 	class Part {
-		public CharSequence quantity;
+		int quantity, signedOut;
 		String name;
 		String number;
 		String manufacturer;
@@ -498,6 +510,12 @@ public class InventoryActivity extends Activity {
 			this.number = number;
 			this.manufacturer = manufacturer;
 			setStr("category", category);
+		}
+
+		public Part(String name, String number, String manufacturer,
+				String category, int quantity) {
+			this(name, number, manufacturer, category);
+			this.quantity = quantity;
 		}
 
 		public boolean equals(Object other) {
@@ -519,9 +537,15 @@ public class InventoryActivity extends Activity {
 				number = val;
 			else if (prop.equalsIgnoreCase("manufacturer"))
 				manufacturer = val;
-			else if (prop.equalsIgnoreCase("category")) {
+			else if (prop.equalsIgnoreCase("quantity")) {
+				try {
+					if (val.length() != 0)
+						quantity = Integer.parseInt(val);
+				} catch (Exception e) {
+				}
+			} else if (prop.equalsIgnoreCase("category")) {
 				String category = new String(val);
-				for (CharSequence cat : categories) {
+				for (CharSequence cat : categoryList) {
 					if (category.equals(cat))
 						this.category = (String) cat;
 				}
