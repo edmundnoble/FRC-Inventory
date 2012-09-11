@@ -1,5 +1,7 @@
 package t4069.inventory;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +34,7 @@ public class InventoryActivity extends Activity {
 			signOutButton, viewButton, editButton;
 	private String filterName = "", filterNumber = "", filterManufacturer = "",
 			filterCategory = "";
-	private int filterQuantity;
+	private int filterQuantity = -1;
 	private ListView partView;
 	private int selectedPartPosition = -1;
 	private Dialog filter, add, signOut, category;
@@ -47,7 +49,8 @@ public class InventoryActivity extends Activity {
 				break;
 			}
 			case R.id.button2: {
-				if (selectedPartPosition == -1) return;
+				if (selectedPartPosition == -1)
+					return;
 				view();
 				break;
 			}
@@ -60,7 +63,8 @@ public class InventoryActivity extends Activity {
 				break;
 			}
 			case R.id.button5: {
-				View filter_layout = getLayoutInflater().inflate(R.layout.filter_dialog, null);
+				View filter_layout = getLayoutInflater().inflate(
+						R.layout.filter_dialog, null);
 				filter(filter_layout);
 				break;
 			}
@@ -159,11 +163,10 @@ public class InventoryActivity extends Activity {
 		makeCategoryDialog(category_layout);
 		View add_layout = inflater.inflate(R.layout.add_dialog, null);
 		makeAddDialog(add_layout);
-		
-		
-
 	}
-private static final String DO_NOT_FILTER = "Not filtered";
+
+	private static final String DO_NOT_FILTER = "Not filtered";
+
 	private void filter(View filter_layout) {
 		filter = new Dialog(this);
 		filter.setTitle("Inventory Filter");
@@ -200,15 +203,10 @@ private static final String DO_NOT_FILTER = "Not filtered";
 				filterManufacturer = filterManufacturerField.getText()
 						.toString();
 				filterCategory = (String) (categorySpinnerFilter
-						.getSelectedItem().equals(DO_NOT_FILTER) ? "" : categorySpinnerFilter
-						.getSelectedItem());
-				try {
-					if (filterQuantityField.length() != 0)
-						filterQuantity = Integer.parseInt(filterQuantityField
-								.getText().toString());
-				} catch (Exception e) {
-					filterQuantity = -1;
-				}
+						.getSelectedItem().equals(DO_NOT_FILTER) ? ""
+						: categorySpinnerFilter.getSelectedItem());
+				filterQuantity = parseInt(filterQuantityField.getText().toString());
+				
 				filter.cancel();
 				refreshParts();
 			}
@@ -310,14 +308,17 @@ private static final String DO_NOT_FILTER = "Not filtered";
 				.findViewById(R.id.editText2);
 		final EditText manufacturerField = (EditText) add_layout
 				.findViewById(R.id.editText3);
+		final EditText quantityField = (EditText) add_layout
+				.findViewById(R.id.editText4);
 		m_addButton.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				if (nameField.getText().toString() == null
 						&& partField.getText().toString() == null) {
 					Toast.makeText(getApplicationContext(), "No name or ID!",
 							Toast.LENGTH_SHORT).show();
-					add.dismiss();
+					return;
 				}
+				
 				String name = "";
 				String manufacturer = "";
 				String partNum = "";
@@ -333,7 +334,11 @@ private static final String DO_NOT_FILTER = "Not filtered";
 					refreshParts();
 					return;
 				}
-				parts.add(new Part(name, partNum, manufacturer, category));
+				Part newPart = new Part(name, partNum, manufacturer, category);
+				int quantity = parseInt(quantityField.getText().toString());
+				newPart.quantity = (quantity == Integer.MIN_VALUE ? 0
+						: quantity);
+				parts.add(newPart);
 				refreshParts();
 				add.dismiss();
 			}
@@ -372,7 +377,6 @@ private static final String DO_NOT_FILTER = "Not filtered";
 		Part removePart = (Part) parts.get(selectedPartPosition);
 		parts.remove(removePart);
 		refreshParts();
-
 	}
 
 	protected void resetFilter() {
@@ -396,25 +400,26 @@ private static final String DO_NOT_FILTER = "Not filtered";
 
 	final String[] keys = new String[] { "Name", "Number" };
 
-	protected void refreshParts() {
+	protected void refreshParts() {/*
 		List<Map<String, String>> data = new ArrayList<Map<String, String>>();
 		for (Part part : parts) {
 			Map<String, String> datum = new HashMap<String, String>(keys.length);
 			datum.put(keys[0], part.name);
 			datum.put(keys[1], part.number);
 			data.add(datum);
-		}
-		SimpleAdapter viewAdapter;
-		if (filterName.length() == 0 || filterCategory.length() == 0
-				|| filterNumber.length() == 0
-				|| filterManufacturer.length() == 0 || filterQuantity == -1) {
-			viewAdapter = filter(parts);
-		} else
+		}*/
+		SimpleAdapter viewAdapter = filter(parts);
+		selectedPartPosition = -1;
+		partView.setAdapter(viewAdapter);
+		/*if (filterName.equals("") && filterCategory.equals("")&& filterNumber.equals("")
+				&& filterManufacturer.equals("") && filterQuantity == -1) {
 			viewAdapter = new SimpleAdapter(getApplicationContext(), data,
 					android.R.layout.simple_list_item_2, keys, new int[] {
 							android.R.id.text1, android.R.id.text2 });
+		} else
+			viewAdapter = filter(parts);
 		partView.setAdapter(viewAdapter);
-		selectedPartPosition = -1;
+		selectedPartPosition = -1;*/
 	}
 
 	@SuppressWarnings({ "unchecked", "unused" })
@@ -431,7 +436,8 @@ private static final String DO_NOT_FILTER = "Not filtered";
 					|| (filterManufacturer.length() != 0 && !part.manufacturer
 							.equalsIgnoreCase(filterManufacturer))
 					|| (filterCategory.length() != 0 && !part.category
-							.equalsIgnoreCase(filterCategory))) {
+							.equalsIgnoreCase(filterCategory))
+					|| (filterQuantity != -1 && filterQuantity != part.quantity)) {
 				parts.remove(part);
 				continue;
 			}
@@ -447,6 +453,11 @@ private static final String DO_NOT_FILTER = "Not filtered";
 		return viewAdapter;
 	}
 
+	private void saveData() throws FileNotFoundException {
+		FileOutputStream saveFile = openFileOutput("inventory_storage", MODE_PRIVATE);
+		String lol;
+	}
+	
 	private void edit(final Part viewPart) {
 		final Dialog editDialog = new Dialog(this);
 		View layout = getLayoutInflater().inflate(R.layout.add_dialog, null);
@@ -463,9 +474,12 @@ private static final String DO_NOT_FILTER = "Not filtered";
 				.findViewById(R.id.editText2);
 		final EditText manufacturerField = (EditText) layout
 				.findViewById(R.id.editText3);
+		final EditText quantityField = (EditText) layout
+				.findViewById(R.id.editText4);
 		nameField.setText(viewPart.name);
 		numberField.setText(viewPart.number);
 		manufacturerField.setText(viewPart.manufacturer);
+		quantityField.setText(((Integer) viewPart.quantity).toString());
 		final Spinner addCategories = (Spinner) layout
 				.findViewById(R.id.spinner1);
 		addCategories.setAdapter((new ArrayAdapter<CharSequence>(
@@ -479,13 +493,16 @@ private static final String DO_NOT_FILTER = "Not filtered";
 		}
 		m_saveButton.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
+				int quantity = parseInt(quantityField.getText().toString());
 				parts.remove(viewPart);
-				parts.add(new Part(nameField.getText().toString(), numberField
-						.getText().toString(), manufacturerField.getText()
-						.toString(), (String) addCategories.getSelectedItem()));
-				int selectedPos = selectedPartPosition;
+				Part addPart = new Part(nameField.getText().toString(),
+						numberField.getText().toString(), manufacturerField
+								.getText().toString(), (String) addCategories
+								.getSelectedItem());
+				if (quantity != Integer.MIN_VALUE)
+					addPart.quantity = quantity;
+				parts.add(addPart);
 				refreshParts();
-				selectedPartPosition = selectedPos;
 				editDialog.cancel();
 			}
 		});
@@ -495,6 +512,15 @@ private static final String DO_NOT_FILTER = "Not filtered";
 			}
 		});
 		editDialog.show();
+	}
+
+	protected int parseInt(String string) {
+		try {
+			if (string.length() == 0) throw new RuntimeException();
+			return Integer.parseInt(string.trim());
+		} catch (Exception e) {
+			return Integer.MIN_VALUE;
+		}
 	}
 
 	class Part {
@@ -510,6 +536,7 @@ private static final String DO_NOT_FILTER = "Not filtered";
 			this.number = number;
 			this.manufacturer = manufacturer;
 			setStr("category", category);
+			quantity = 0;
 		}
 
 		public Part(String name, String number, String manufacturer,
