@@ -36,7 +36,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class InventoryActivity extends Activity {
-	private static final int SUP_DELIM = 0x01;
+	private static final byte SUP_DELIM = 0x00;
 	private static final String SAVE_FILE = "inventory_storage";
 	protected static final String ADD_NEW_CATEGORY = "Add a new category";
 	private Button addButton, removeButton, filterButton, resetFilterButton,
@@ -91,12 +91,16 @@ public class InventoryActivity extends Activity {
 			}
 		}
 	};
-
+private void addCategory(final String name) {
+	if (!categoryList.contains(name)) {
+		categoryList.add(name);
+	}
+}
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		categoryList.add("None");
-		categoryList.add(ADD_NEW_CATEGORY);
+		addCategory("None");
+		addCategory(ADD_NEW_CATEGORY);
 		setContentView(R.layout.activity_main);
 		partView = (ListView) findViewById(R.id.listView1);
 		partView.setOnItemClickListener(new OnItemClickListener() {
@@ -167,8 +171,8 @@ public class InventoryActivity extends Activity {
 		} catch (IOException e) {
 			Toast.makeText(this, "Loading error!", Toast.LENGTH_LONG).show();
 			categoryList = new ArrayList<CharSequence>();
-			categoryList.add(ADD_NEW_CATEGORY);
-			categoryList.add("None");
+			addCategory(ADD_NEW_CATEGORY);
+			addCategory("None");
 			parts = new ArrayList<Part>();
 		}
 		refreshParts();
@@ -241,7 +245,7 @@ public class InventoryActivity extends Activity {
 	}
 
 	String selectedCategory;
-
+	
 	private void makeCategoryDialog(View category_layout) {
 		category = new Dialog(this);
 		category.setTitle("Category");
@@ -277,7 +281,7 @@ public class InventoryActivity extends Activity {
 		addButton.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				final String name = categoryNameField.getText().toString();
-				categoryList.add(name);
+				addCategory(name);
 				categoryListView.setAdapter(new ArrayAdapter<CharSequence>(
 						getApplicationContext(),
 						android.R.layout.simple_expandable_list_item_1,
@@ -346,8 +350,8 @@ public class InventoryActivity extends Activity {
 				.findViewById(R.id.editText4);
 		m_addButton.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
-				if (nameField.getText().toString() == null
-						&& partField.getText().toString() == null) {
+				if (nameField.getText().toString().length() == 0
+						&& partField.getText().toString().length() == 0) {
 					Toast.makeText(getApplicationContext(), "No name or ID!",
 							Toast.LENGTH_SHORT).show();
 					return;
@@ -535,7 +539,7 @@ public class InventoryActivity extends Activity {
 		String cat = "";
 		while ((ch = chars[offset]) != SUP_DELIM) {
 			if (ch == ',') {
-				categoryList.add(cat);
+				addCategory(cat);
 				cat = "";
 			} else {
 				cat += ch;
