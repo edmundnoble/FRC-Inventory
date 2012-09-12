@@ -1,7 +1,11 @@
 package t4069.inventory;
 
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,6 +15,9 @@ import android.os.Bundle;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnCancelListener;
+import android.content.DialogInterface.OnShowListener;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -29,6 +36,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class InventoryActivity extends Activity {
+	private static final int SUP_DELIM = 0x01;
+	private static final String SAVE_FILE = "inventory_storage";
 	protected static final String ADD_NEW_CATEGORY = "Add a new category";
 	private Button addButton, removeButton, filterButton, resetFilterButton,
 			signOutButton, viewButton, editButton;
@@ -118,7 +127,6 @@ public class InventoryActivity extends Activity {
 	protected void signOut() {
 		Dialog signOut = new Dialog(this);
 		signOut.setTitle("Sign Out");
-
 	}
 
 	protected void view() {
@@ -154,6 +162,15 @@ public class InventoryActivity extends Activity {
 	}
 
 	private void loadPreferences() {
+		try {
+			loadData();
+		} catch (IOException e) {
+			Toast.makeText(this, "Loading error!", Toast.LENGTH_LONG).show();
+			categoryList = new ArrayList<CharSequence>();
+			categoryList.add(ADD_NEW_CATEGORY);
+			categoryList.add("None");
+			parts = new ArrayList<Part>();
+		}
 		refreshParts();
 	}
 
@@ -205,8 +222,9 @@ public class InventoryActivity extends Activity {
 				filterCategory = (String) (categorySpinnerFilter
 						.getSelectedItem().equals(DO_NOT_FILTER) ? ""
 						: categorySpinnerFilter.getSelectedItem());
-				filterQuantity = parseInt(filterQuantityField.getText().toString());
-				
+				filterQuantity = parseInt(filterQuantityField.getText()
+						.toString());
+
 				filter.cancel();
 				refreshParts();
 			}
@@ -236,9 +254,13 @@ public class InventoryActivity extends Activity {
 				.findViewById(R.id.addCategoryButton);
 		final Button deleteButton = (Button) category_layout
 				.findViewById(R.id.deleteCategoryButton);
-		categoryListView.setAdapter(new ArrayAdapter<CharSequence>(this,
-				android.R.layout.simple_expandable_list_item_1,
-				getModifiableCategories()));
+		category.setOnShowListener(new OnShowListener(){
+			public void onShow(DialogInterface dialog) {
+				categoryListView.setAdapter(new ArrayAdapter<CharSequence>(getApplicationContext(),
+						android.R.layout.simple_expandable_list_item_1,
+						getModifiableCategories()));
+			}
+		});
 		categoryListView.requestFocus();
 		categoryListView.setOnItemClickListener(new OnItemClickListener() {
 			public void onItemClick(AdapterView<?> arg0, View arg1, int arg2,
@@ -249,7 +271,7 @@ public class InventoryActivity extends Activity {
 		((Button) category_layout.findViewById(R.id.cancelCategoryButton))
 				.setOnClickListener(new OnClickListener() {
 					public void onClick(View v) {
-						category.dismiss();
+						category.cancel();
 					}
 				});
 		addButton.setOnClickListener(new OnClickListener() {
@@ -297,6 +319,18 @@ public class InventoryActivity extends Activity {
 		addCategories.setAdapter((new ArrayAdapter<CharSequence>(
 				getApplicationContext(),
 				android.R.layout.simple_expandable_list_item_1, categoryList)));
+		category.setOnCancelListener(new OnCancelListener() {
+			public void onCancel(DialogInterface dialog) {
+				addCategories.setAdapter((new ArrayAdapter<CharSequence>(
+						getApplicationContext(),
+						android.R.layout.simple_expandable_list_item_1,
+						categoryList)));
+				for (int i = 0; i < categoryList.size(); i++) {
+				if (addCategories.getItemAtPosition(i).equals("None")) {
+					addCategories.setSelection(i);
+				}}
+			}
+		});
 		final Button m_addButton = (Button) add_layout
 				.findViewById(R.id.addDialogButton1);
 		m_addButton.setText("Add");
@@ -318,7 +352,6 @@ public class InventoryActivity extends Activity {
 							Toast.LENGTH_SHORT).show();
 					return;
 				}
-				
 				String name = "";
 				String manufacturer = "";
 				String partNum = "";
@@ -350,7 +383,6 @@ public class InventoryActivity extends Activity {
 			}
 		});
 		addCategories.setOnItemSelectedListener(new OnItemSelectedListener() {
-
 			public void onItemSelected(AdapterView<?> arg0, View arg1,
 					int arg2, long arg3) {
 				String categoryname = (String) addCategories.getSelectedItem();
@@ -401,25 +433,31 @@ public class InventoryActivity extends Activity {
 	final String[] keys = new String[] { "Name", "Number" };
 
 	protected void refreshParts() {/*
-		List<Map<String, String>> data = new ArrayList<Map<String, String>>();
-		for (Part part : parts) {
-			Map<String, String> datum = new HashMap<String, String>(keys.length);
-			datum.put(keys[0], part.name);
-			datum.put(keys[1], part.number);
-			data.add(datum);
-		}*/
+									 * List<Map<String, String>> data = new
+									 * ArrayList<Map<String, String>>(); for
+									 * (Part part : parts) { Map<String, String>
+									 * datum = new HashMap<String,
+									 * String>(keys.length); datum.put(keys[0],
+									 * part.name); datum.put(keys[1],
+									 * part.number); data.add(datum); }
+									 */
 		SimpleAdapter viewAdapter = filter(parts);
 		selectedPartPosition = -1;
 		partView.setAdapter(viewAdapter);
-		/*if (filterName.equals("") && filterCategory.equals("")&& filterNumber.equals("")
-				&& filterManufacturer.equals("") && filterQuantity == -1) {
-			viewAdapter = new SimpleAdapter(getApplicationContext(), data,
-					android.R.layout.simple_list_item_2, keys, new int[] {
-							android.R.id.text1, android.R.id.text2 });
-		} else
-			viewAdapter = filter(parts);
-		partView.setAdapter(viewAdapter);
-		selectedPartPosition = -1;*/
+		/*
+		 * if (filterName.equals("") && filterCategory.equals("")&&
+		 * filterNumber.equals("") && filterManufacturer.equals("") &&
+		 * filterQuantity == -1) { viewAdapter = new
+		 * SimpleAdapter(getApplicationContext(), data,
+		 * android.R.layout.simple_list_item_2, keys, new int[] {
+		 * android.R.id.text1, android.R.id.text2 }); } else viewAdapter =
+		 * filter(parts); partView.setAdapter(viewAdapter); selectedPartPosition
+		 * = -1;
+		 */
+	}
+	public void onResume() {
+		super.onResume();
+		try {loadData();} catch (Exception e) {}
 	}
 
 	@SuppressWarnings({ "unchecked", "unused" })
@@ -453,11 +491,108 @@ public class InventoryActivity extends Activity {
 		return viewAdapter;
 	}
 
-	private void saveData() throws FileNotFoundException {
-		FileOutputStream saveFile = openFileOutput("inventory_storage", MODE_PRIVATE);
-		String lol;
+	private void saveData() throws IOException {
+		Log.i(TAG, getFilesDir().toString());
+		getApplicationContext().deleteFile(SAVE_FILE);
+		FileOutputStream saveFile = getApplicationContext().openFileOutput(SAVE_FILE, MODE_WORLD_READABLE);
+		OutputStreamWriter writer = new OutputStreamWriter(saveFile);
+		String finalStr = "";
+		writer.write(SUP_DELIM);
+		for (CharSequence cat : categoryList) {
+			if (!cat.equals(ADD_NEW_CATEGORY) && !cat.equals("None")) {
+				writer.write(cat.toString());
+				writer.write(',');
+			}
+		}
+		writer.write(SUP_DELIM);
+		for (Part p : parts) {
+			writer.write(p.name);
+			writer.write(',');
+			writer.write(p.number);
+			writer.write(',');
+			writer.write(p.manufacturer);
+			writer.write(',');
+			writer.write(p.category);
+			writer.write(',');
+			writer.write(((Integer)p.quantity).toString());
+			writer.write('\n');
+		}
+		writer.write(SUP_DELIM);
+		writer.flush();
+		writer.close();
 	}
-	
+
+	private void loadData() throws IOException {
+		FileInputStream loadFile = getApplicationContext().openFileInput(SAVE_FILE);
+		InputStreamReader reader = new InputStreamReader(loadFile);
+		char[] chars = new char[4096];
+		if (reader.read() != SUP_DELIM) {
+			throw new IOException("Part database not valid!");
+		}
+		reader.read(chars);
+		int offset = 0;
+		char ch;
+		String cat = "";
+		while ((ch = chars[offset]) != SUP_DELIM) {
+			if (ch == ',') {
+				categoryList.add(cat);
+				cat = "";
+			} else {
+				cat += ch;
+			}
+			offset++;
+		}
+		System.arraycopy(chars, offset, chars, 0, chars.length - offset - 1);
+		offset = 0;
+		final int NAME = 0, NUM = 1, MAN = 2, CAT = 3, QUANT = 4;
+		int q = 0;
+		String name = "", number = "", maker = "", category = "", quant = "";
+		while ((ch = chars[offset]) != SUP_DELIM) {
+			if (ch == ',') {
+				q++;
+			}
+			if (ch == '\n') {
+				parts.add(new Part(name, number, maker, category,
+						parseInt(quant)));
+				q = 0;
+				name = "";
+				number = "";
+				maker = "";
+				category = "";
+				quant = "";
+			}
+			switch (q) {
+			case NAME:
+				name += ch;
+				break;
+			case NUM:
+				number += ch;
+				break;
+			case MAN:
+				maker += ch;
+				break;
+			case CAT:
+				category += ch;
+				break;
+			case QUANT:
+				quant += ch;
+				break;
+			default:
+				throw new IOException("Part database not valid!");
+			}
+		}
+	}
+
+	public void onPause() {
+		super.onPause();
+		try {
+			saveData();
+		} catch (IOException e) {
+			Toast.makeText(this,"Saving failed!", Toast.LENGTH_LONG).show();
+			e.printStackTrace();
+		}
+	}
+
 	private void edit(final Part viewPart) {
 		final Dialog editDialog = new Dialog(this);
 		View layout = getLayoutInflater().inflate(R.layout.add_dialog, null);
@@ -516,7 +651,8 @@ public class InventoryActivity extends Activity {
 
 	protected int parseInt(String string) {
 		try {
-			if (string.length() == 0) throw new RuntimeException();
+			if (string.length() == 0)
+				throw new RuntimeException();
 			return Integer.parseInt(string.trim());
 		} catch (Exception e) {
 			return Integer.MIN_VALUE;
