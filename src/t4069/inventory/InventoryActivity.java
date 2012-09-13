@@ -36,7 +36,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class InventoryActivity extends Activity {
-	private static final byte SUP_DELIM = 0x00;
+	private static final byte SUP_DELIM = 0x04;
 	private static final String SAVE_FILE = "inventory_storage";
 	protected static final String ADD_NEW_CATEGORY = "Add a new category";
 	private Button addButton, removeButton, filterButton, resetFilterButton,
@@ -46,7 +46,7 @@ public class InventoryActivity extends Activity {
 	private int filterQuantity = -1;
 	private ListView partView;
 	private int selectedPartPosition = -1;
-	private Dialog filter, add, signOut, category;
+	private Dialog filter, add, category, signOut;
 	private static final String TAG = "FRC Inventory";
 	private ArrayList<CharSequence> categoryList = new ArrayList<CharSequence>();
 	private ArrayList<Part> parts = new ArrayList<Part>();
@@ -58,16 +58,29 @@ public class InventoryActivity extends Activity {
 				break;
 			}
 			case R.id.button2: {
-				if (selectedPartPosition == -1)
+				if (selectedPartPosition == -1) {
+					Toast.makeText(getApplicationContext(),
+							"No part selected!", Toast.LENGTH_SHORT).show();
 					return;
+				}
 				view();
 				break;
 			}
 			case R.id.button3: {
-				signOut();
+				if (selectedPartPosition == -1) {
+					Toast.makeText(getApplicationContext(),
+							"No part selected!", Toast.LENGTH_SHORT).show();
+					return;
+				}
+				signOut.show();
 				break;
 			}
 			case R.id.button4: {
+				if (selectedPartPosition == -1) {
+					Toast.makeText(getApplicationContext(),
+							"No part selected!", Toast.LENGTH_SHORT).show();
+					return;
+				}
 				remove();
 				break;
 			}
@@ -82,20 +95,24 @@ public class InventoryActivity extends Activity {
 				break;
 			}
 			case R.id.button7: {
-				if (selectedPartPosition == -1
-						|| parts.get(selectedPartPosition) == null)
+				if (selectedPartPosition == -1) {
+					Toast.makeText(getApplicationContext(),
+							"No part selected!", Toast.LENGTH_SHORT).show();
 					return;
+				}
 				edit(parts.get(selectedPartPosition));
 				break;
 			}
 			}
 		}
 	};
-private void addCategory(final String name) {
-	if (!categoryList.contains(name)) {
-		categoryList.add(name);
+
+	private void addCategory(final String name) {
+		if (!categoryList.contains(name)) {
+			categoryList.add(name);
+		}
 	}
-}
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -109,7 +126,6 @@ private void addCategory(final String name) {
 				selectedPartPosition = arg2;
 			}
 		});
-		refreshParts();
 		addButton = (Button) findViewById(R.id.button1);
 		removeButton = (Button) findViewById(R.id.button4);
 		viewButton = (Button) findViewById(R.id.button2);
@@ -128,9 +144,46 @@ private void addCategory(final String name) {
 		loadPreferences();
 	}
 
-	protected void signOut() {
-		Dialog signOut = new Dialog(this);
-		signOut.setTitle("Sign Out");
+	protected void makeSignOutDialog(View layout) {
+		signOut = new Dialog(this);
+		signOut.setTitle("Signing Out");
+		signOut.setContentView(layout);
+		final EditText signedOutField = (EditText) layout
+				.findViewById(R.id.signOutSignedOutEdit);
+		final TextView quantityField = (TextView) layout
+				.findViewById(R.id.signOutQuantityView);
+		final Button confirmButton = (Button) layout
+				.findViewById(R.id.signOutConfirmButton);
+		((Button) layout.findViewById(R.id.signOutCancelButton))
+				.setOnClickListener(new OnClickListener() {
+					public void onClick(View v) {
+						signOut.cancel();
+					}
+				});
+		confirmButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				int signedOut = Integer.valueOf(signedOutField.getText()
+						.toString());
+				if (Integer.valueOf(quantityField.getText().toString()) < Integer
+						.valueOf(signedOutField.getText().toString())
+						|| Integer.valueOf(signedOutField.getText().toString()) < 0) {
+					Toast.makeText(getApplicationContext(),
+							"Signed out quantity invalid.", Toast.LENGTH_SHORT)
+							.show();
+					return;
+				}
+				Part m_part = parts.get(selectedPartPosition);
+				m_part.signedOut = signedOut;
+				signOut.cancel();
+			}
+		});
+		signOut.setOnShowListener(new OnShowListener() {
+			public void onShow(DialogInterface dialog) {
+				Part m_part = parts.get(selectedPartPosition);
+				quantityField.setText(String.valueOf(m_part.quantity));
+				signedOutField.setText(String.valueOf(m_part.signedOut));
+			}
+		});
 	}
 
 	protected void view() {
@@ -155,7 +208,7 @@ private void addCategory(final String name) {
 		numberField.setText(viewPart.number);
 		manufacturerField.setText(viewPart.manufacturer);
 		categoryField.setText(viewPart.category);
-		quantityField.setText(viewPart.quantity);
+		quantityField.setText(Integer.valueOf(viewPart.quantity).toString());
 		editButton.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				edit(viewPart);
@@ -184,6 +237,8 @@ private void addCategory(final String name) {
 		makeCategoryDialog(category_layout);
 		View add_layout = inflater.inflate(R.layout.add_dialog, null);
 		makeAddDialog(add_layout);
+		View signout_layout = inflater.inflate(R.layout.sign_out_dialog, null);
+		makeSignOutDialog(signout_layout);
 	}
 
 	private static final String DO_NOT_FILTER = "Not filtered";
@@ -226,9 +281,8 @@ private void addCategory(final String name) {
 				filterCategory = (String) (categorySpinnerFilter
 						.getSelectedItem().equals(DO_NOT_FILTER) ? ""
 						: categorySpinnerFilter.getSelectedItem());
-				filterQuantity = parseInt(filterQuantityField.getText()
-						.toString());
-
+				filterQuantity = (parseInt(filterQuantityField.getText()
+						.toString()) == Integer.MIN_VALUE ? -1 : parseInt(filterQuantityField.getText().toString()));
 				filter.cancel();
 				refreshParts();
 			}
@@ -245,7 +299,7 @@ private void addCategory(final String name) {
 	}
 
 	String selectedCategory;
-	
+
 	private void makeCategoryDialog(View category_layout) {
 		category = new Dialog(this);
 		category.setTitle("Category");
@@ -258,9 +312,10 @@ private void addCategory(final String name) {
 				.findViewById(R.id.addCategoryButton);
 		final Button deleteButton = (Button) category_layout
 				.findViewById(R.id.deleteCategoryButton);
-		category.setOnShowListener(new OnShowListener(){
+		category.setOnShowListener(new OnShowListener() {
 			public void onShow(DialogInterface dialog) {
-				categoryListView.setAdapter(new ArrayAdapter<CharSequence>(getApplicationContext(),
+				categoryListView.setAdapter(new ArrayAdapter<CharSequence>(
+						getApplicationContext(),
 						android.R.layout.simple_expandable_list_item_1,
 						getModifiableCategories()));
 			}
@@ -330,9 +385,10 @@ private void addCategory(final String name) {
 						android.R.layout.simple_expandable_list_item_1,
 						categoryList)));
 				for (int i = 0; i < categoryList.size(); i++) {
-				if (addCategories.getItemAtPosition(i).equals("None")) {
-					addCategories.setSelection(i);
-				}}
+					if (addCategories.getItemAtPosition(i).equals("None")) {
+						addCategories.setSelection(i);
+					}
+				}
 			}
 		});
 		final Button m_addButton = (Button) add_layout
@@ -403,14 +459,13 @@ private void addCategory(final String name) {
 	}
 
 	protected void remove() {
-		if (selectedPartPosition == -1) {
-			Toast.makeText(this, "No part selected!", Toast.LENGTH_SHORT)
-					.show();
-			return;
+		if (partView.getItemAtPosition(selectedPartPosition) == null) {
+			Log.d(TAG, "Selected item is null!");
 		}
-		Log.d(TAG, partView.getAdapter().getItem(selectedPartPosition)
-				.getClass().toString());
-		Part removePart = (Part) parts.get(selectedPartPosition);
+		HashMap<String, String> part = (HashMap<String, String>) partView
+				.getItemAtPosition(selectedPartPosition);
+		Part removePart = new Part(part.get(keys[0]), part.get(keys[1]), "",
+				"None");
 		parts.remove(removePart);
 		refreshParts();
 	}
@@ -459,10 +514,6 @@ private void addCategory(final String name) {
 		 * = -1;
 		 */
 	}
-	public void onResume() {
-		super.onResume();
-		try {loadData();} catch (Exception e) {}
-	}
 
 	@SuppressWarnings({ "unchecked", "unused" })
 	private SimpleAdapter filter(ArrayList<Part> list) {
@@ -470,6 +521,7 @@ private void addCategory(final String name) {
 		boolean numberFiltered = filterNumber != null;
 		boolean manufacturerFiltered = filterManufacturer != null, categoryFiltered = filterCategory != null;
 		List<Map<String, String>> data = new ArrayList<Map<String, String>>();
+		ArrayList<Part> removed = new ArrayList<Part>();
 		for (Part part : parts) {
 			if ((filterName.length() != 0 && !part.name
 					.equalsIgnoreCase(filterName))
@@ -480,15 +532,19 @@ private void addCategory(final String name) {
 					|| (filterCategory.length() != 0 && !part.category
 							.equalsIgnoreCase(filterCategory))
 					|| (filterQuantity != -1 && filterQuantity != part.quantity)) {
-				parts.remove(part);
+				removed.add(part);
+				//parts.remove(part);
 				continue;
 			}
-			Map<String, String> datum = new HashMap<String, String>(keys.length);
-			datum.put(keys[0], part.name);
-			datum.put(keys[1], part.number);
-			data.add(datum);
+		}for (Part part : removed) {
+			parts.remove(part);
 		}
-
+for (Part part : parts) {
+		Map<String, String> datum = new HashMap<String, String>(keys.length);
+		datum.put(keys[0], part.name);
+		datum.put(keys[1], part.number);
+		data.add(datum);
+}
 		SimpleAdapter viewAdapter = new SimpleAdapter(getApplicationContext(),
 				data, android.R.layout.simple_list_item_2, keys, new int[] {
 						android.R.id.text1, android.R.id.text2 });
@@ -498,7 +554,8 @@ private void addCategory(final String name) {
 	private void saveData() throws IOException {
 		Log.i(TAG, getFilesDir().toString());
 		getApplicationContext().deleteFile(SAVE_FILE);
-		FileOutputStream saveFile = getApplicationContext().openFileOutput(SAVE_FILE, MODE_WORLD_READABLE);
+		FileOutputStream saveFile = getApplicationContext().openFileOutput(
+				SAVE_FILE, MODE_WORLD_READABLE);
 		OutputStreamWriter writer = new OutputStreamWriter(saveFile);
 		String finalStr = "";
 		writer.write(SUP_DELIM);
@@ -518,7 +575,9 @@ private void addCategory(final String name) {
 			writer.write(',');
 			writer.write(p.category);
 			writer.write(',');
-			writer.write(((Integer)p.quantity).toString());
+			writer.write(String.valueOf(p.quantity));
+			writer.write(',');
+			writer.write(String.valueOf(p.signedOut));
 			writer.write('\n');
 		}
 		writer.write(SUP_DELIM);
@@ -527,14 +586,12 @@ private void addCategory(final String name) {
 	}
 
 	private void loadData() throws IOException {
-		FileInputStream loadFile = getApplicationContext().openFileInput(SAVE_FILE);
+		FileInputStream loadFile = getApplicationContext().openFileInput(
+				SAVE_FILE);
 		InputStreamReader reader = new InputStreamReader(loadFile);
 		char[] chars = new char[4096];
-		if (reader.read() != SUP_DELIM) {
-			throw new IOException("Part database not valid!");
-		}
+		int offset = 1;
 		reader.read(chars);
-		int offset = 0;
 		char ch;
 		String cat = "";
 		while ((ch = chars[offset]) != SUP_DELIM) {
@@ -546,24 +603,30 @@ private void addCategory(final String name) {
 			}
 			offset++;
 		}
-		System.arraycopy(chars, offset, chars, 0, chars.length - offset - 1);
-		offset = 0;
-		final int NAME = 0, NUM = 1, MAN = 2, CAT = 3, QUANT = 4;
+		offset++;
+		final int NAME = 0, NUM = 1, MAN = 2, CAT = 3, QUANT = 4, SIGNED = 5;
 		int q = 0;
-		String name = "", number = "", maker = "", category = "", quant = "";
+		String name = "", number = "", maker = "", category = "", quant = "", signedOut = "";
 		while ((ch = chars[offset]) != SUP_DELIM) {
 			if (ch == ',') {
 				q++;
+				offset++;
+				continue;
 			}
 			if (ch == '\n') {
-				parts.add(new Part(name, number, maker, category,
-						parseInt(quant)));
+				final Part newPart = new Part(name, number, maker, category,
+						parseInt(quant));
+				newPart.signedOut = (parseInt(signedOut));
+				parts.add(newPart);
 				q = 0;
 				name = "";
 				number = "";
 				maker = "";
 				category = "";
 				quant = "";
+				signedOut = "";
+				offset++;
+				continue;
 			}
 			switch (q) {
 			case NAME:
@@ -581,10 +644,15 @@ private void addCategory(final String name) {
 			case QUANT:
 				quant += ch;
 				break;
+			case SIGNED:
+				signedOut += ch;
+				break;
 			default:
 				throw new IOException("Part database not valid!");
 			}
+			offset++;
 		}
+
 	}
 
 	public void onPause() {
@@ -592,7 +660,7 @@ private void addCategory(final String name) {
 		try {
 			saveData();
 		} catch (IOException e) {
-			Toast.makeText(this,"Saving failed!", Toast.LENGTH_LONG).show();
+			Toast.makeText(this, "Saving failed!", Toast.LENGTH_LONG).show();
 			e.printStackTrace();
 		}
 	}
@@ -677,6 +745,7 @@ private void addCategory(final String name) {
 			this.manufacturer = manufacturer;
 			setStr("category", category);
 			quantity = 0;
+			signedOut = 0;
 		}
 
 		public Part(String name, String number, String manufacturer,

@@ -45,7 +45,7 @@ public final class R {
         public static final int listView1=0x7f080003;
         public static final int manufacturerFieldFilter=0x7f080020;
         public static final int manufacturerViewView=0x7f080028;
-        public static final int menu_settings=0x7f08002c;
+        public static final int menu_settings=0x7f080032;
         public static final int nameFieldFilter=0x7f08001e;
         public static final int nameViewView=0x7f080026;
         public static final int numberFieldFilter=0x7f08001f;
@@ -53,6 +53,12 @@ public final class R {
         public static final int quantityFieldFilter=0x7f080023;
         public static final int quantityViewView=0x7f08002a;
         public static final int saveButtonFilter=0x7f080024;
+        public static final int signOutCancelButton=0x7f080031;
+        public static final int signOutConfirmButton=0x7f080030;
+        public static final int signOutQuantityView=0x7f08002d;
+        public static final int signOutSignedOutEdit=0x7f08002f;
+        public static final int signOutTextView1=0x7f08002c;
+        public static final int signOutTextView2=0x7f08002e;
         public static final int spinner1=0x7f080013;
         public static final int tableRow1=0x7f080008;
         public static final int tableRow2=0x7f08000b;
