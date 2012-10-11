@@ -46,7 +46,7 @@ public class InventoryActivity extends Activity {
 	private int filterQuantity = -1;
 	private ListView partView;
 	private int selectedPartPosition = -1;
-	private Dialog filter, add, category, signOut;
+	private Dialog filter, add, category, signOut, view;
 	private static final String TAG = "FRC Inventory";
 	private ArrayList<CharSequence> categoryList = new ArrayList<CharSequence>();
 	private ArrayList<Part> parts = new ArrayList<Part>();
@@ -63,7 +63,7 @@ public class InventoryActivity extends Activity {
 							"No part selected!", Toast.LENGTH_SHORT).show();
 					return;
 				}
-				view();
+				view.show();
 				break;
 			}
 			case R.id.button3: {
@@ -186,12 +186,10 @@ public class InventoryActivity extends Activity {
 		});
 	}
 
-	protected void view() {
-		final Dialog view = new Dialog(this);
-		View viewLayout = getLayoutInflater().inflate(R.layout.part_view, null);
+	protected void makeViewDialog(View viewLayout) {
+		view = new Dialog(this);
 		view.setTitle("View Part");
 		view.setContentView(viewLayout);
-		final Part viewPart = (Part) parts.get(selectedPartPosition);
 		final TextView nameField = (TextView) viewLayout
 				.findViewById(R.id.nameViewView);
 		final TextView numberField = (TextView) viewLayout
@@ -204,18 +202,24 @@ public class InventoryActivity extends Activity {
 				.findViewById(R.id.quantityViewView);
 		final Button editButton = (Button) viewLayout
 				.findViewById(R.id.buttonEditView);
-		nameField.setText(viewPart.name);
-		numberField.setText(viewPart.number);
-		manufacturerField.setText(viewPart.manufacturer);
-		categoryField.setText(viewPart.category);
-		quantityField.setText(Integer.valueOf(viewPart.quantity).toString());
+		view.setOnShowListener(new OnShowListener() {
+			public void onShow(DialogInterface dialog) {
+				final Part viewPart = parts.get(selectedPartPosition);
+				nameField.setText(viewPart.name);
+				numberField.setText(viewPart.number);
+				manufacturerField.setText(viewPart.manufacturer);
+				categoryField.setText(viewPart.category);
+				quantityField.setText(Integer.valueOf(viewPart.quantity)
+						.toString());
+			}
+		});
 		editButton.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
+				final Part viewPart = parts.get(selectedPartPosition);
 				edit(viewPart);
 				view.cancel();
 			}
 		});
-		view.show();
 	}
 
 	private void loadPreferences() {
@@ -239,6 +243,9 @@ public class InventoryActivity extends Activity {
 		makeAddDialog(add_layout);
 		View signout_layout = inflater.inflate(R.layout.sign_out_dialog, null);
 		makeSignOutDialog(signout_layout);
+		View view_layout = getLayoutInflater()
+				.inflate(R.layout.part_view, null);
+		makeViewDialog(view_layout);
 	}
 
 	private static final String DO_NOT_FILTER = "Not filtered";
@@ -282,7 +289,8 @@ public class InventoryActivity extends Activity {
 						.getSelectedItem().equals(DO_NOT_FILTER) ? ""
 						: categorySpinnerFilter.getSelectedItem());
 				filterQuantity = (parseInt(filterQuantityField.getText()
-						.toString()) == Integer.MIN_VALUE ? -1 : parseInt(filterQuantityField.getText().toString()));
+						.toString()) == Integer.MIN_VALUE ? -1
+						: parseInt(filterQuantityField.getText().toString()));
 				filter.cancel();
 				refreshParts();
 			}
@@ -523,8 +531,7 @@ public class InventoryActivity extends Activity {
 		List<Map<String, String>> data = new ArrayList<Map<String, String>>();
 		ArrayList<Part> removed = new ArrayList<Part>();
 		for (Part part : parts) {
-			if ((filterName.length() != 0 && !part.name
-					.equalsIgnoreCase(filterName))
+			if ((filterName.length() != 0 && !part.name.contains(filterName))
 					|| (filterNumber.length() != 0 && !part.number
 							.equalsIgnoreCase(filterNumber))
 					|| (filterManufacturer.length() != 0 && !part.manufacturer
@@ -533,18 +540,18 @@ public class InventoryActivity extends Activity {
 							.equalsIgnoreCase(filterCategory))
 					|| (filterQuantity != -1 && filterQuantity != part.quantity)) {
 				removed.add(part);
-				//parts.remove(part);
-				continue;
+				// parts.remove(part);
 			}
-		}for (Part part : removed) {
+		}
+		for (Part part : removed) {
 			parts.remove(part);
 		}
-for (Part part : parts) {
-		Map<String, String> datum = new HashMap<String, String>(keys.length);
-		datum.put(keys[0], part.name);
-		datum.put(keys[1], part.number);
-		data.add(datum);
-}
+		for (Part part : parts) {
+			Map<String, String> datum = new HashMap<String, String>(keys.length);
+			datum.put(keys[0], part.name);
+			datum.put(keys[1], part.number);
+			data.add(datum);
+		}
 		SimpleAdapter viewAdapter = new SimpleAdapter(getApplicationContext(),
 				data, android.R.layout.simple_list_item_2, keys, new int[] {
 						android.R.id.text1, android.R.id.text2 });
