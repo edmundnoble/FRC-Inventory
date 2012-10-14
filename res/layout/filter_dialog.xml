@@ -23,12 +23,11 @@
                 android:id="@+id/nameFieldFilter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:ems="10" >
+                android:ems="10"
+                android:singleLine="true" >
 
                 <requestFocus />
-
             </EditText>
-
         </TableRow>
 
         <TableRow
@@ -46,8 +45,9 @@
                 android:id="@+id/numberFieldFilter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:ems="10" />
-
+                android:ems="10"
+                android:singleLine="true"
+                android:scrollHorizontally="true" />
         </TableRow>
 
         <TableRow
@@ -65,8 +65,9 @@
                 android:id="@+id/manufacturerFieldFilter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:ems="10" />
-
+                android:ems="10"
+                android:singleLine="true"
+                android:scrollHorizontally="true" />
         </TableRow>
 
         <TableRow
@@ -84,7 +85,6 @@
                 android:id="@+id/categorySpinnerFilter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
-
         </TableRow>
 
         <TableRow
@@ -104,11 +104,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:ems="10"
-                android:inputType="number"
-                android:text=" " />
-
+                android:inputType="number" />
         </TableRow>
-
     </TableLayout>
 
     <Button

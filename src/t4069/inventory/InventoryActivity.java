@@ -470,10 +470,12 @@ public class InventoryActivity extends Activity {
 		if (partView.getItemAtPosition(selectedPartPosition) == null) {
 			Log.d(TAG, "Selected item is null!");
 		}
+		Log.d(TAG, partView.getItemAtPosition(selectedPartPosition).getClass()
+				.toString());
 		HashMap<String, String> part = (HashMap<String, String>) partView
-				.getItemAtPosition(selectedPartPosition);
-		Part removePart = new Part(part.get(keys[0]), part.get(keys[1]), "",
-				"None");
+				.getAdapter().getItem(selectedPartPosition);
+		Part removePart = new Part(part.get(KEY_NAME), part.get(KEY_NUMBER),
+				part.get(KEY_MANUFACTURER), "None");
 		parts.remove(removePart);
 		refreshParts();
 	}
@@ -497,7 +499,17 @@ public class InventoryActivity extends Activity {
 		return true;
 	}
 
-	final String[] keys = new String[] { "Name", "Number" };
+	public static final String KEY_NAME = "name";
+	public static final String KEY_MANUFACTURER = "maker";
+	public static final String KEY_CATEGORY = "category";
+	public static final String KEY_QUANTITY = "quantity";
+	public static final String KEY_SIGNED_OUT = "signed out";
+	public static final String KEY_IMAGE = "image";
+	public static final String KEY_NUMBER = "number";
+	public static final String KEY_IMG_URL = "imgurl";
+
+	public static final String[] KEYS = { KEY_NAME, KEY_MANUFACTURER,
+			KEY_CATEGORY, KEY_IMG_URL };
 
 	protected void refreshParts() {/*
 									 * List<Map<String, String>> data = new
@@ -508,7 +520,7 @@ public class InventoryActivity extends Activity {
 									 * part.name); datum.put(keys[1],
 									 * part.number); data.add(datum); }
 									 */
-		SimpleAdapter viewAdapter = filter(parts);
+		LazyAdapter viewAdapter = filter(parts);
 		selectedPartPosition = -1;
 		partView.setAdapter(viewAdapter);
 		/*
@@ -524,11 +536,11 @@ public class InventoryActivity extends Activity {
 	}
 
 	@SuppressWarnings({ "unchecked", "unused" })
-	private SimpleAdapter filter(ArrayList<Part> list) {
+	private LazyAdapter filter(ArrayList<Part> list) {
 		ArrayList<Part> parts = (ArrayList<Part>) this.parts.clone();
 		boolean numberFiltered = filterNumber != null;
 		boolean manufacturerFiltered = filterManufacturer != null, categoryFiltered = filterCategory != null;
-		List<Map<String, String>> data = new ArrayList<Map<String, String>>();
+		ArrayList<HashMap<String, String>> data = new ArrayList<HashMap<String, String>>();
 		ArrayList<Part> removed = new ArrayList<Part>();
 		for (Part part : parts) {
 			if ((filterName.length() != 0 && !part.name.contains(filterName))
@@ -547,14 +559,15 @@ public class InventoryActivity extends Activity {
 			parts.remove(part);
 		}
 		for (Part part : parts) {
-			Map<String, String> datum = new HashMap<String, String>(keys.length);
-			datum.put(keys[0], part.name);
-			datum.put(keys[1], part.number);
+			HashMap<String, String> datum = new HashMap<String, String>(5);
+			datum.put(KEY_NAME, part.name);
+			datum.put(KEY_MANUFACTURER, part.manufacturer);
+			datum.put(KEY_CATEGORY, part.category);
+			datum.put(KEY_NUMBER, part.number);
+			datum.put(KEY_IMG_URL, part.imgLocation);
 			data.add(datum);
 		}
-		SimpleAdapter viewAdapter = new SimpleAdapter(getApplicationContext(),
-				data, android.R.layout.simple_list_item_2, keys, new int[] {
-						android.R.id.text1, android.R.id.text2 });
+		LazyAdapter viewAdapter = new LazyAdapter(this, data);
 		return viewAdapter;
 	}
 
@@ -562,9 +575,8 @@ public class InventoryActivity extends Activity {
 		Log.i(TAG, getFilesDir().toString());
 		getApplicationContext().deleteFile(SAVE_FILE);
 		FileOutputStream saveFile = getApplicationContext().openFileOutput(
-				SAVE_FILE, MODE_WORLD_READABLE);
+				SAVE_FILE, MODE_PRIVATE);
 		OutputStreamWriter writer = new OutputStreamWriter(saveFile);
-		String finalStr = "";
 		writer.write(SUP_DELIM);
 		for (CharSequence cat : categoryList) {
 			if (!cat.equals(ADD_NEW_CATEGORY) && !cat.equals("None")) {
@@ -744,6 +756,7 @@ public class InventoryActivity extends Activity {
 		String number;
 		String manufacturer;
 		String category;
+		String imgLocation;
 
 		public Part(String name, String number, String manufacturer,
 				String category) {
@@ -759,6 +772,12 @@ public class InventoryActivity extends Activity {
 				String category, int quantity) {
 			this(name, number, manufacturer, category);
 			this.quantity = quantity;
+		}
+
+		public Part(String name, String number, String manufacturer,
+				String category, int quantity, String imgLocation) {
+			this(name, number, manufacturer, category, quantity);
+			this.imgLocation = imgLocation;
 		}
 
 		public boolean equals(Object other) {
